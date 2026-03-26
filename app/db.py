@@ -6,14 +6,16 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession , create_async_engine , async_sessionmaker 
 from sqlalchemy.orm import DeclarativeBase, relationship 
 
-import datetime
-DATABASE_URL = "sqlite+ aiosqlite:///./test.db"
+from datetime import datetime
+DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
-class Post(DeclarativeBase) : 
+class Base(DeclarativeBase) : 
+    pass  
+class Post(Base) :  
     __tablename__ = "posts"  #create a new table 
     
-    #create an id primary key  and generate a random 128 bit uuid key and store it 
-    id = Column(UUID(as_uuid=True) , primary_key=True, default = uuid.uuid4)
+    #create an id primary key and generate a random 128 bit uuid key and store it 
+    id = Column(UUID(as_uuid=True) , primary_key=True, default = uuid.uuid4) # primary key 
     caption = Column(Text) ; 
     url =  Column(String , nullable = False)  
     file_type = Column(String, nullable=False) 
@@ -22,12 +24,14 @@ class Post(DeclarativeBase) :
     
     
     
+    
 engine = create_async_engine(DATABASE_URL) 
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False) ; 
 
+#create databases and tables 
 async def create_db_and_tables() :  
-    async with engine.begin() as conn : 
-        await conn.run_sync(DeclarativeBase.metadata.create_all) ; 
+    async with engine.begin() as conn :  
+        await conn.run_sync(Base.metadata.create_all) ; 
         
         
 async def get_async_session()->AsyncGenerator[AsyncSession, None] : 

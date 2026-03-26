@@ -1,27 +1,27 @@
-from fastapi import FastAPI , HTTPException
+from fastapi import FastAPI , HTTPException, File ,UploadFile , Form, Depends 
 from app.schemas import PoseCreate , PostResponse 
-from app.db import Post, create_db_and_tables, create_async_engine
-app = FastAPI() ; 
-
-text_posts = {1 : {"title" : "New Post", "content" : "cool test post"}} 
-
-@app.get("/posts") 
-def get_all_posts(limit : int = None) : 
-    if(limit)  : 
-        return text_posts[:limit] ; 
-    return text_posts
+from app.db import Post, create_db_and_tables, create_async_engine , get_async_session 
+from contextlib import asynccontextmanager  
 
 
-@app.get("/posts/{id}") 
-def get_post(id:int) : 
-    if id not in text_posts :
-        raise HTTPException(status_code=404, detail="Post not found")
-    return text_posts.get(id)  ; 
 
-
-@app.post("/posts") 
-def create_post(post : PoseCreate) -> PostResponse : 
+@asynccontextmanager 
+async def lifespan(app :FastAPI) : 
+    await create_db_and_tables() ; 
+    yield  
     
-    new_post =  {"title" : post.title , "content" : post.content}; 
-    text_posts[max(text_posts.keys()) + 1 ] = new_post 
-    return  new_post 
+app = FastAPI(lifespan=lifespan) ; 
+
+@app.post("/upload") 
+async def upload_file(file : UploadFile = File(...) , 
+                      caption : str = Form(""), 
+                      session : AsyncSession  = Depends(get_async_session)) :  
+    post = Post(
+        caption = caption , 
+        url = "dummy url" , 
+        file_type = "photo" , 
+        file_name =  "dummy_name" 
+    ) 
+    session.add(post) ; 
+    await session.commit() ; 
+    await session.refresh(post) ; 
